@@ -28,3 +28,12 @@ features:
   - title: 🍡 Open Source
     details: Charlotte is open-sourced under AGPL-3.0-only license.
 ---
+
+---
+
+<br />
+<h1 align='center'>Gallary</h1>
+<br />
+<div style='display: flex; overflow-x: auto; white-space: nowrap; justify-content: center; align-items: center; gap: 1rem;'>
+<img src='/tab.png' style='border-radius: 12px; max-width: 500px; height: fit-content' />
+</div>

@@ -100,7 +100,6 @@ const activatedMessage = defineMessage({
 });
 
 let globalCtx: GlobalCtx | null = null;
-let pageLoaded = false;
 const deferredScripts: DeferredScript[] = [];
 
 export function attachCtx (ctx: GlobalCtx) {
@@ -260,7 +259,7 @@ export async function activate (id: string) {
                 intl: intl,
                 settings: addonSettings
             });
-        if (script.runAtComplete && !pageLoaded) {
+        if (script.runAtComplete && document.readyState !== "complete") {
             hasDeferredScripts = true;
             deferredScripts.push({
                 belongs: id,
@@ -293,7 +292,8 @@ export async function activate (id: string) {
         globalCtx.emit('core.addon.activated', id);
         console.log(intl.formatMessage(activatedMessage, {name: addon.name, id}));
     } else {
-        window.addEventListener('load', loadScriptAtComplete);
+        document.addEventListener('readystatechange', loadScriptAtComplete);
+        loadScriptAtComplete();
     }
 }
 
@@ -332,6 +332,7 @@ export async function deactivate (id: string) {
 }
 
 async function loadScriptAtComplete () {
+    if (document.readyState === 'complete') {
     if (!globalCtx) {
         throw new Error('Loader: globalCtx not attached');
     }
@@ -357,6 +358,6 @@ async function loadScriptAtComplete () {
         }
     }
 
-    pageLoaded = true;
-    window.removeEventListener('load', loadScriptAtComplete);
+    document.removeEventListener('readystatechange', loadScriptAtComplete);
+    }
 }

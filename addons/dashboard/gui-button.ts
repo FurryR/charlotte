@@ -4,12 +4,15 @@ export default async function ({ addon, console, intl }: AddonCtxWithAPI) {
     const button = document.createElement('div');
     button.setAttribute('role', 'button');
     button.className = 'charlotteButton';
+    button.id = 'charlotteDashboardButton';
     button.innerHTML = `🌠&nbsp;&nbsp;${intl.formatMessage({id: '@dashboard/addons', defaultMessage: 'Addons'})}`;
     button.addEventListener('click', () => {
         addon.app.openFrontend();
     });
-    
-    addon.api.appendToSharedSpace(button, 'afterSoundTab');
+
+    if (!addon.api.appendToSharedSpace(button, 'afterSoundTab')) {
+        console.warn('Failed to append yo shared space');
+    }
     return () => {
         button.remove();
     };

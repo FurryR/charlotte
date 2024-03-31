@@ -8,7 +8,6 @@ console.log(`Charlotte ${version}`);
 
 const globalCtx = createCtx(version);
 setup(globalCtx);
-
 console.log(intl.formatMessage({
     id: '@core/loadingAddon',
     defaultMessage: 'Loading addons...'

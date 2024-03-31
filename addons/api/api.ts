@@ -88,6 +88,7 @@ export interface CharlotteAPI {
      * @param element The element you want to append to
      * @param space Where do you want to append
      * @param order The the order of the added element.
+     * @returns Whether element is applied successfully.
      * @example
      * const button = document.createElement('button');
      * button.className = 'charlotteButton';
@@ -98,7 +99,7 @@ export interface CharlotteAPI {
      *
      * addon.api.appendToSharedSpace(button, 'afterSoundTab');
      */
-    appendToSharedSpace (element: HTMLElement, space: SharedSpace, order?: number): void;
+    appendToSharedSpace (element: HTMLElement, space: SharedSpace, order?: number): boolean;
     /**
      * Get hashed className from unhashed className.
      * @param possibleClassNames all possible classNames
