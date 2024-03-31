@@ -42,7 +42,31 @@ fs.readdirSync('addons').forEach(addonId => {
         }
     }
     code += `       ],\n`;
-    code += `       settings: ${JSON.stringify(manifest.settings ?? {})}\n`;
+    code += `       settings: {\n`;
+    if (manifest.settings) {
+        for (const settingId in manifest.settings) {
+            const setting = manifest.settings[settingId];
+            code += `           ${JSON.stringify(settingId)}: {\n`;
+            code += `               id: ${JSON.stringify(settingId)},\n`;
+            code += `               name: intl.formatMessage({id: '@' + ${JSON.stringify(addonId)} + '/${settingId}', defaultMessage: ${JSON.stringify(setting.name)}}),\n`;
+            code += `               type: ${JSON.stringify(setting.type)},\n`;
+            code += `               default: ${JSON.stringify(setting.default)},\n`;
+            if (setting.min) {
+                code += `               min: ${JSON.stringify(setting.min)},\n`;
+            }
+            if (setting.max) {
+                code += `               max: ${JSON.stringify(setting.min)},\n`;
+            }
+            if (setting.allowTransparency) {
+                code += `               allowTransparency: ${JSON.stringify(setting.allowTransparency)},\n`;
+            }
+            if (setting.items) {
+                code += `               items: ${JSON.stringify(setting.items)},\n`;
+            }
+            code += `           },\n`;
+        }
+    }
+    code += `       },\n`;
     code += `    },\n`;
 });
 

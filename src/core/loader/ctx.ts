@@ -19,8 +19,9 @@ class Ctx extends EventEmitter {
         attachCtx(this);
     }
 
-    reloadAddons () {
+    reloadAddonList () {
         this.addons = addons();
+        this.emit('core.addonList.reloaded');
     }
     getLocale () {
         return settings.locale ?? 'en';

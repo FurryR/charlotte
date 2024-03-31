@@ -74,7 +74,7 @@ export default async function ({ addon, intl, settings }) {
         };
     }
 
-    const updateExistingBlocks = () => {
+    const updateExistingBlocks = (_?: string, __?: string) => {
         const workspace = ScratchBlocks.getMainWorkspace();
         const flyout = workspace && workspace.getFlyout();
         if (workspace && flyout) {

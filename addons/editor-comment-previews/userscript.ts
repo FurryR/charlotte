@@ -16,7 +16,7 @@ interface VMBlock {
 export default async function ({ addon, settings }) {
     const vm = await addon.api.getVM();
 
-    const updateStyles = () => {
+    const updateStyles = (_?: string, __?: string) => {
         previewInner.classList.toggle('sa-comment-preview-delay', settings.get('delay') !== 'none');
         previewInner.classList.toggle('sa-comment-preview-reduce-transparency', settings.get('reduce-transparency'));
         previewInner.classList.toggle('sa-comment-preview-fade', !settings.get('reduce-animation'));

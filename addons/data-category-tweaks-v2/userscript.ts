@@ -195,7 +195,7 @@ export default async function ({ addon, intl, settings }) {
         vm.emitWorkspaceUpdate();
     }
 
-    settings.on('change', (e) => {
+    settings.on('change', (_, __) => {
     // When the separate list category option changes, we need to do a workspace update.
     // For all other options, just refresh the toolbox.
     // Always doing both of these in response to a settings change causes many issues.

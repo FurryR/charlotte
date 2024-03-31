@@ -1,5 +1,5 @@
 import type { GlobalCtx } from '../loader/ctx';
-import {createIntl, createIntlCache} from '@formatjs/intl';
+import { createIntl, createIntlCache } from '@formatjs/intl';
 import type { IntlShape } from '@formatjs/intl';
 import en from '../../../locales/en.json';
 import zhCn from '../../../locales/zh-cn.json';
@@ -18,15 +18,17 @@ export function setup (ctx: GlobalCtx) {
         locale: ctx.getLocale(),
         messages: messages[ctx.getLocale()] ?? messages.en
     }, cache);
+    ctx.reloadAddonList();
 
-    ctx.on('core.settings.changed', (name: string) => {
+    ctx.on('core.settings.changed', (name: string, _: string) => {
         if (name !== 'locale') return;
 
         intlHost.intl = createIntl({
             locale: ctx.getLocale(),
             messages: messages[ctx.getLocale()]  ?? messages.en
         }, cache);
-        ctx.reloadAddons();
+        ctx.reloadAddonList();
+        ctx.emit('core.locale.changed');
     });
 }
 

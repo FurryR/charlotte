@@ -30,12 +30,14 @@ export interface AddonCtx {
 }
 
 export interface AddonSettingBoolean {
+    id: string;
     name: string;
     type: 'boolean';
     default: boolean;
 }
 
 export interface AddonSettingInt {
+    id: string;
     name: string;
     type: 'integer' | 'positive_integer';
     default: number;
@@ -44,12 +46,14 @@ export interface AddonSettingInt {
 }
 
 export interface AddonSettingString {
+    id: string;
     name: string;
     type: 'string';
     default: string;
 }
 
 export interface AddonSettingColor {
+    id: string;
     name: string;
     type: 'color';
     default: `#${string}`;
@@ -63,6 +67,7 @@ export interface AddonSelectorItem {
 }
 
 export interface AddonSettingSelect {
+    id: string;
     name: string;
     type: 'select';
     default: string;

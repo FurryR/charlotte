@@ -1,4 +1,4 @@
-export default async function ({ addon, console }) {
+export default async function ({ addon, intl, console }) {
     const Blockly = await addon.api.getBlockly();
     const originalAddCreateButton_ = Blockly.Procedures.addCreateButton_;
     if (!originalAddCreateButton_) {
@@ -21,7 +21,7 @@ export default async function ({ addon, console }) {
 
         // Add dashboard button
         const dashboardButton = document.createElement('button');
-        dashboardButton.setAttribute('text', 'Manage Addons');
+        dashboardButton.setAttribute('text', intl.formatMessage({id: '@dashboard/addons', defaultMessage: 'Addons'}));
         dashboardButton.setAttribute('callbackKey', 'CHARLOTTE_FRONTEND');
         workspace.registerButtonCallback('CHARLOTTE_FRONTEND', () => {
             addon.app.openFrontend();

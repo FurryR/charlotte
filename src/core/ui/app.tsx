@@ -1,5 +1,5 @@
 import type { Addon } from '../loader/loader';
-import { createSignal, Show, For, onMount } from 'solid-js';
+import { createSignal, Switch as SolidSwitch, Match, Show, For, onMount } from 'solid-js';
 import { render } from 'solid-js/web';
 import intl, { defineMessage } from '../util/l10n';
 import console from '../util/console';
@@ -9,13 +9,12 @@ import type { GlobalCtx } from '../loader/ctx';
 import styles, { stylesheet } from './style.module.css';
 import closeIcon from './assets/icon--close.svg';
 
-let globalCtx: GlobalCtx | null = null;
+let setModalStatus: null | Function = null;
 
+let globalCtx: GlobalCtx | null = null;
 export function attachCtx (ctx: GlobalCtx) {
     globalCtx = ctx;
 }
-
-let setModalStatus: null | Function = null;
 
 interface SwitchProps {
     value?: boolean;
@@ -25,6 +24,50 @@ interface SwitchProps {
 
 interface AddonStatus extends Addon {
     pending?: boolean;
+}
+
+interface AddonProps {
+    addon: AddonStatus,
+    onSwitch (value: boolean): void;
+}
+
+function AddonCard (props: AddonProps) {
+    const [expand, setExpand] = createSignal(false);
+    return (
+        <div class={classNames(styles.addon, expand() ? styles.expand : null)}>
+            <div class={styles.addonHeader}>
+                <div class={styles.info} onClick={() => {
+                    setExpand(!expand());
+                }}>
+                    <span class={styles.name}>{props.addon.name}</span>
+                    <span class={styles.description}>{props.addon.description}</span>
+                </div>
+                <Switch value={props.addon.enabled} disabled={props.addon.pending} onChange={props.onSwitch} />
+            </div>
+            <Show when={expand()}>
+                <div class={styles.settings}>
+                    <For each={Object.values(props.addon.settings)}>
+                        {(setting) => (
+                            <div class={styles.settingItem}>
+                                <span class={styles.subname}>{setting.name}</span>
+                                <SolidSwitch>
+                                    <Match when={setting.type === 'boolean'}>
+                                        <Switch
+                                            value={globalCtx.settings[`@${props.addon.id}/${setting.id}`] ?? setting.default}
+                                            disabled={!props.addon.enabled}
+                                            onChange={(value: boolean) => {
+                                                globalCtx.settings[`@${props.addon.id}/${setting.id}`] = value;
+                                            }}
+                                        />
+                                    </Match>
+                                </SolidSwitch>
+                            </div>
+                        )}
+                    </For>
+                </div>
+            </Show>
+        </div>
+    );
 }
 
 function Switch (props: SwitchProps) {
@@ -62,13 +105,13 @@ function Modal () {
     const [refreshRequested, setRefreshRequested] = createSignal(false);
     const [addons, setAddons] = createSignal<Record<string, AddonStatus>>(Object.assign({}, globalCtx.addons));
     const activate = (id: string) => {
-        const newAddonStatus = Object.assign({}, addons()[id], {enabled: true, pending: true});
+        const newAddonStatus = Object.assign({}, addons()[id], {enabled: true, pending: addons()[id].dynamicEnable});
         setAddons(Object.assign({}, addons(), {[id]: newAddonStatus}));
         if (addons()[id].dynamicEnable) globalCtx!.loader.activate(id);
         else setRefreshRequested(true);
     };
     const deactivate = (id: string) => {
-        const newAddonStatus = Object.assign({}, addons()[id], {enabled: false, pending: true});
+        const newAddonStatus = Object.assign({}, addons()[id], {enabled: false, pending: addons()[id].dynamicDisable});
         setAddons(Object.assign({}, addons(), {[id]: newAddonStatus}));
         if (addons()[id].dynamicDisable) globalCtx!.loader.deactivate(id);
         else setRefreshRequested(true);
@@ -83,6 +126,9 @@ function Modal () {
         globalCtx.on('core.addon.deactivated', (id: string) => {
             const newAddonStatus = Object.assign({}, addons()[id], {enabled: false, pending: false});
             setAddons(Object.assign({}, addons(), {[id]: newAddonStatus}));
+        });
+        globalCtx.on('core.addonList.reloaded', () => {
+            setAddons(Object.assign({}, globalCtx.addons));
         });
     });
 
@@ -129,20 +175,14 @@ function Modal () {
                         </Show>
                         <For each={Object.values(addons())}>
                             {(addon) => (
-                                <div class={styles.addon}>
-                                    <div class={styles.info}>
-                                        <span class={styles.name}>{addon.name}</span>
-                                        <span class={styles.description}>{addon.description}</span>
-                                    </div>
-                                    <Switch value={addon.enabled} disabled={addon.pending} onChange={(value: boolean) => {
-                                        if (value) {
-                                            activate(addon.id);
-                                        } else {
-                                            deactivate(addon.id);
-                                        }
-                                        globalCtx.settings[`@${addon.id}/enabled`] = value;
-                                    }} />
-                                </div>
+                                <AddonCard addon={addon} onSwitch={(value: boolean) => {
+                                    if (value) {
+                                        activate(addon.id);
+                                    } else {
+                                        deactivate(addon.id);
+                                    }
+                                    globalCtx.settings[`@${addon.id}/enabled`] = value;
+                                }} />
                             )}
                         </For>
                     </div>
@@ -153,10 +193,6 @@ function Modal () {
 }
 
 export function openFrontend () {
-    if (!globalCtx) {
-        throw new Error('UI: globalCtx not attached');
-    }
-
     if (!setModalStatus) {
         // Initialize front-end
         const style = document.createElement('style');
