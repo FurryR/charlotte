@@ -89,7 +89,7 @@ export interface AddonManifest {
     settings: Record<string, AddonSetting>;
 }
 
-export interface Addon extends AddonManifest {
+export interface RuntimeAddon {
     enabled?: boolean;
     disposers?: (() => void)[];
 }
@@ -100,6 +100,7 @@ const activatedMessage = defineMessage({
 });
 
 let globalCtx: GlobalCtx | null = null;
+export const runtimeAddons: Record<string, RuntimeAddon> = {};
 const deferredScripts: DeferredScript[] = [];
 
 export function attachCtx (ctx: GlobalCtx) {
@@ -197,7 +198,7 @@ function _findIdInList (id: string, list: string[]) {
 export async function deactivateByOrder (ids: string[]) {
     const graph = new Graph();
     for (const id of ids) {
-        if (globalCtx.addons[id].enabled) {
+        if (runtimeAddons[id]?.enabled) {
             _checkUnloadingOrderById(id, graph);
         }
     }
@@ -235,7 +236,12 @@ export async function activate (id: string) {
     }
 
     const addon = globalCtx.addons[id];
-    if (addon.enabled) {
+    if (typeof runtimeAddons[id] !== 'object') {
+        runtimeAddons[id] = {};
+    }
+    const runtimeAddon = runtimeAddons[id];
+
+    if (runtimeAddon.enabled) {
         return console.warn(intl.formatMessage({
             id: '@core/cannotActivateEnabledAddon',
             defaultMessage: 'cannot activate an enabled addon: {id}'
@@ -244,8 +250,8 @@ export async function activate (id: string) {
 
     // Apply userscripts
     const addonSettings = wrapAddonSettings(id);
-    addon.disposers = [];
-    addon.disposers.push(() => {
+    runtimeAddon.disposers = [];
+    runtimeAddon.disposers.push(() => {
         addonSettings.dispose();
     });
     let hasDeferredScripts = false;
@@ -259,7 +265,7 @@ export async function activate (id: string) {
                 intl: intl,
                 settings: addonSettings
             });
-        if (script.runAtComplete && document.readyState !== "complete") {
+        if (script.runAtComplete && document.readyState !== 'complete') {
             hasDeferredScripts = true;
             deferredScripts.push({
                 belongs: id,
@@ -271,7 +277,7 @@ export async function activate (id: string) {
             console.error(`(${id}) ${script.func.name.toString()}: `, e);
         });
         if (typeof disposer === 'function') {
-            addon.disposers.push(disposer);
+            runtimeAddon.disposers.push(disposer);
         }
     }
 
@@ -288,7 +294,7 @@ export async function activate (id: string) {
     }
 
     if (!hasDeferredScripts) {
-        addon.enabled = true;
+        runtimeAddon.enabled = true;
         globalCtx.emit('core.addon.activated', id);
         console.log(intl.formatMessage(activatedMessage, {name: addon.name, id}));
     } else {
@@ -303,7 +309,11 @@ export async function deactivate (id: string) {
     }
 
     const addon = globalCtx.addons[id];
-    if (!addon.enabled) {
+    if (typeof runtimeAddons[id] !== 'object') {
+        runtimeAddons[id] = {};
+    }
+    const runtimeAddon = runtimeAddons[id];
+    if (!runtimeAddon.enabled) {
         return console.warn(intl.formatMessage({
             id: '@core/cannotDeactivateDisabledAddon',
             defaultMessage: 'cannot deactivate a disabled addon: {id}'
@@ -311,7 +321,7 @@ export async function deactivate (id: string) {
     }
 
     // Execute disposers
-    for (const disposer of addon.disposers) {
+    for (const disposer of runtimeAddon.disposers) {
         await disposer();
     }
 
@@ -323,7 +333,7 @@ export async function deactivate (id: string) {
         }
     }
 
-    addon.enabled = false;
+    runtimeAddon.enabled = false;
     globalCtx.emit('core.addon.deactivated', id);
     console.log(intl.formatMessage({
         id: '@core/addonDeactivated',
@@ -333,31 +343,32 @@ export async function deactivate (id: string) {
 
 async function loadScriptAtComplete () {
     if (document.readyState === 'complete') {
-    if (!globalCtx) {
-        throw new Error('Loader: globalCtx not attached');
-    }
+        if (!globalCtx) {
+            throw new Error('Loader: globalCtx not attached');
+        }
 
-    const activatedAddons = new Set<string>();
-    if (deferredScripts.length > 0) {
-        for (const script of deferredScripts) {
-            const addon = globalCtx.addons[script.belongs];
-            const disposer = await script.func().catch(e => {
-                console.error(`(${script.belongs}) ${script.func.name.toString()}: `, e);
-            });
-            if (typeof disposer === 'function') {
-                addon.disposers.push(disposer);
+        const activatedAddons = new Set<string>();
+        if (deferredScripts.length > 0) {
+            for (const script of deferredScripts) {
+                const addon = runtimeAddons[script.belongs];
+                const disposer = await script.func().catch(e => {
+                    console.error(`(${script.belongs}) ${script.func.name.toString()}: `, e);
+                });
+                if (typeof disposer === 'function') {
+                    addon.disposers.push(disposer);
+                }
+                activatedAddons.add(script.belongs);
             }
-            activatedAddons.add(script.belongs);
+
+            for (const id of activatedAddons) {
+                const addon = globalCtx.addons[id];
+                const runtimeAddon = runtimeAddons[id];
+                runtimeAddon.enabled = true;
+                globalCtx.emit('core.addon.activated', id);
+                console.log(intl.formatMessage(activatedMessage, {name: addon.name, id}));
+            }
         }
 
-        for (const id of activatedAddons) {
-            const addon = globalCtx.addons[id];
-            addon.enabled = true;
-            globalCtx.emit('core.addon.activated', id);
-            console.log(intl.formatMessage(activatedMessage, {name: addon.name, id}));
-        }
-    }
-
-    document.removeEventListener('readystatechange', loadScriptAtComplete);
+        document.removeEventListener('readystatechange', loadScriptAtComplete);
     }
 }

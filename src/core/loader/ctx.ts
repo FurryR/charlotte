@@ -1,5 +1,5 @@
 import EventEmitter from 'eventemitter3';
-import type { Addon } from './loader';
+import type { AddonManifest } from './loader';
 import type { Settings } from '../util/settings';
 import addons from '../../addons';
 import * as loader from '../loader/loader';
@@ -8,7 +8,7 @@ import { attachCtx, settings } from '../util/settings';
 
 class Ctx extends EventEmitter {
     version: string;
-    addons: Record<string, Addon> = addons();
+    addons: Record<string, AddonManifest> = addons();
     settings = settings;
     loader = loader;
     app = app;

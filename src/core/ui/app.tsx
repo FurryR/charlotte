@@ -1,4 +1,4 @@
-import type { Addon } from '../loader/loader';
+import type { AddonManifest, RuntimeAddon } from '../loader/loader';
 import { createSignal, Switch as SolidSwitch, Match, Show, For, onMount } from 'solid-js';
 import { render } from 'solid-js/web';
 import intl, { defineMessage } from '../util/l10n';
@@ -22,12 +22,13 @@ interface SwitchProps {
     onChange: (value: boolean) => void;
 }
 
-interface AddonStatus extends Addon {
+interface AddonStatus extends RuntimeAddon {
     pending?: boolean;
 }
 
 interface AddonProps {
-    addon: AddonStatus,
+    addon: AddonManifest,
+    status?: AddonStatus;
     onSwitch (value: boolean): void;
 }
 
@@ -42,7 +43,7 @@ function AddonCard (props: AddonProps) {
                     <span class={styles.name}>{props.addon.name}</span>
                     <span class={styles.description}>{props.addon.description}</span>
                 </div>
-                <Switch value={props.addon.enabled} disabled={props.addon.pending} onChange={props.onSwitch} />
+                <Switch value={props.status && props.status.enabled} disabled={props.status && props.status.pending} onChange={props.onSwitch} />
             </div>
             <Show when={expand()}>
                 <div class={styles.settings}>
@@ -54,7 +55,7 @@ function AddonCard (props: AddonProps) {
                                     <Match when={setting.type === 'boolean'}>
                                         <Switch
                                             value={globalCtx.settings[`@${props.addon.id}/${setting.id}`] ?? setting.default}
-                                            disabled={!props.addon.enabled}
+                                            disabled={!props.status?.enabled}
                                             onChange={(value: boolean) => {
                                                 globalCtx.settings[`@${props.addon.id}/${setting.id}`] = value;
                                             }}
@@ -103,16 +104,17 @@ function Switch (props: SwitchProps) {
 function Modal () {
     const [show, setShow] = createSignal(true);
     const [refreshRequested, setRefreshRequested] = createSignal(false);
-    const [addons, setAddons] = createSignal<Record<string, AddonStatus>>(Object.assign({}, globalCtx.addons));
+    const [addons, setAddons] = createSignal<Record<string, AddonManifest>>(Object.assign({}, globalCtx.addons));
+    const [runtimeAddons, setRuntimeAddons] = createSignal<Record<string, AddonStatus>>(Object.assign({}, globalCtx.loader.runtimeAddons));
     const activate = (id: string) => {
-        const newAddonStatus = Object.assign({}, addons()[id], {enabled: true, pending: addons()[id].dynamicEnable});
-        setAddons(Object.assign({}, addons(), {[id]: newAddonStatus}));
+        const newAddonStatus = Object.assign({}, runtimeAddons()[id], {enabled: true, pending: addons()[id].dynamicEnable});
+        setRuntimeAddons(Object.assign({}, runtimeAddons(), {[id]: newAddonStatus}));
         if (addons()[id].dynamicEnable) globalCtx!.loader.activate(id);
         else setRefreshRequested(true);
     };
     const deactivate = (id: string) => {
-        const newAddonStatus = Object.assign({}, addons()[id], {enabled: false, pending: addons()[id].dynamicDisable});
-        setAddons(Object.assign({}, addons(), {[id]: newAddonStatus}));
+        const newAddonStatus = Object.assign({}, runtimeAddons()[id], {enabled: false, pending: addons()[id].dynamicDisable});
+        setRuntimeAddons(Object.assign({}, runtimeAddons(), {[id]: newAddonStatus}));
         if (addons()[id].dynamicDisable) globalCtx!.loader.deactivate(id);
         else setRefreshRequested(true);
     };
@@ -120,12 +122,12 @@ function Modal () {
         setModalStatus = setShow;
         // Track addon status
         globalCtx.on('core.addon.activated', (id: string) => {
-            const newAddonStatus = Object.assign({}, addons()[id], {enabled: true, pending: false});
-            setAddons(Object.assign({}, addons(), {[id]: newAddonStatus}));
+            const newAddonStatus = Object.assign({}, runtimeAddons()[id], {enabled: true, pending: false});
+            setRuntimeAddons(Object.assign({}, runtimeAddons(), {[id]: newAddonStatus}));
         });
         globalCtx.on('core.addon.deactivated', (id: string) => {
-            const newAddonStatus = Object.assign({}, addons()[id], {enabled: false, pending: false});
-            setAddons(Object.assign({}, addons(), {[id]: newAddonStatus}));
+            const newAddonStatus = Object.assign({}, runtimeAddons()[id], {enabled: false, pending: false});
+            setRuntimeAddons(Object.assign({}, runtimeAddons(), {[id]: newAddonStatus}));
         });
         globalCtx.on('core.addonList.reloaded', () => {
             setAddons(Object.assign({}, globalCtx.addons));
@@ -175,7 +177,7 @@ function Modal () {
                         </Show>
                         <For each={Object.values(addons())}>
                             {(addon) => (
-                                <AddonCard addon={addon} onSwitch={(value: boolean) => {
+                                <AddonCard addon={addon} status={runtimeAddons()[addon.id]} onSwitch={(value: boolean) => {
                                     if (value) {
                                         activate(addon.id);
                                     } else {
