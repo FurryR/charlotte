@@ -1,3 +1,5 @@
+import type { AddonCtxWithAPI } from '../api/api';
+
 export default async function ({ addon, intl, console }) {
     const Blockly = await addon.api.getBlockly();
     const originalAddCreateButton_ = Blockly.Procedures.addCreateButton_;

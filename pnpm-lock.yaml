@@ -48,6 +48,9 @@ importers:
       '@rollup/plugin-image':
         specifier: ^3.0.3
         version: 3.0.3
+      '@turbowarp/types':
+        specifier: ^0.0.12
+        version: 0.0.12
       '@typescript-eslint/eslint-plugin':
         specifier: ^7.4.0
         version: 7.4.0(@typescript-eslint/parser@7.4.0)(eslint@8.57.0)(typescript@5.3.3)
@@ -2592,6 +2595,10 @@ packages:
 
   /@turbowarp/types@0.0.11:
     resolution: {integrity: sha512-CwjS1/KkO+pkKbsPkbji03Ac+j6pVFrdOF0Lo3kWHTNuniHWuQOQx5cK+B+/wNMZ7dCaNjtMS4HDe80RxBrsaQ==}
+    dev: true
+
+  /@turbowarp/types@0.0.12:
+    resolution: {integrity: sha512-VhYdLDyk3ZgCnGb0xN0x0sj4SXsiYknnA/b1UzJlK1EVzK8gO4c+BQg0famYUVIgfS93eBbgRTXP0EyEz0zu/Q==}
     dev: true
 
   /@types/babel__core@7.20.5:

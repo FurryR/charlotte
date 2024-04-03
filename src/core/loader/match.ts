@@ -8,13 +8,18 @@ export interface MatchObject {
     /**
      * Specify where on the website the script should take effect. Usually the options are `root`, `editor`, `projects`, etc.
      */
-    scopes?: string[];
+    scopes?: readonly string[];
 }
 
 /**
  * The accepted each match element.
  */
 export type Match = keyof typeof platformInfo | 'all' | MatchObject;
+
+/**
+ * The accepted scopes
+ */
+export type Scope = 'root' | 'editor' | 'projects';
 
 export const platformInfo = {
     ccw: {
@@ -24,7 +29,9 @@ export const platformInfo = {
         root: /https:\/\/editor\.turbowarp\.cn\/*/
     },
     gitblock: {
-        root: /https:\/\/gitblock\.cn\/*/
+        root: /https:\/\/gitblock\.cn\/*/,
+        editor: /https:\/\/gitblock\.cn\/Project\/*\/Editor/,
+        projects: /https:\/\/gitblock\.cn\/Project\/*/
     },
     xmw: {
         root: /https:\/\/world\.xiaomawang\.com\/*/
@@ -53,10 +60,14 @@ export const platformInfo = {
         projects: /https:\/\/codingclip\.com\/project\/*/
     },
     sc: {
-        root: /https:\/\/scratch\.mit\.edu\/*/
+        root: /https:\/\/scratch\.mit\.edu\/*/,
+        editor: /https:\/\/scratch\.mit\.edu\/projects\/*#editor/,
+        projects: /https:\/\/scratch\.mit\.edu\/projects\/*/
     },
     acamp: {
-        root: /https:\/\/aerfaying\.com\/*/
+        root: /https:\/\/aerfaying\.com\/*/,
+        editor: /https:\/\/aerfaying\.com\/Project\/*\/Editor/,
+        projects: /https:\/\/aerfaying\.com\/Project\/*/
     },
     xueersi: {
         root: /https:\/\/code\.xueersi\.com\/*/

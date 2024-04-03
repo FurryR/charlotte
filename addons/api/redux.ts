@@ -15,7 +15,7 @@ export default async function ({addon, console}) {
     addon.redux = {};
     let reduxReady = false;
     class ReDucks {
-        static compose<S, A> (...composeArgs: ((arg: S) => S)[]): (arg: S) => S {
+        static compose<S> (...composeArgs: ((arg: S) => S)[]): (arg: S) => S {
             if (composeArgs.length === 0) return (args: S) => args;
             return (args: S) => {
                 const composeArgsReverse = composeArgs.slice(0).reverse();

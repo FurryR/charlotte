@@ -1,0 +1,46 @@
+{
+  "name": "Pause Button",
+  "description": "Adds a button to pause the project next to the green flag.",
+  "credits": [
+    {
+      "name": "Tacodiva",
+      "link": "https://github.com/Tacodiva"
+    },
+    {
+      "name": "GarboMuffin"
+    },
+    {
+      "name": "GrahamSH"
+    },
+    {
+      "name": "TheColaber"
+    },
+    {
+      "name": "retronbv"
+    },
+    {
+      "name": "Jeffalo"
+    }
+  ],
+  "userscripts": [
+    {
+      "url": "userscript",
+      "matches": [{
+          "platform": "cc",
+          "scopes": ["editor", "projects"]
+      }, "sc", "acamp", "xmw"],
+      "runAtComplete": false
+    }
+  ],
+  "userstyles": [
+    {
+      "url": "style.css",
+      "matches": ["cc", "sc", "acamp", "xmw"]
+    }
+  ],
+  "dynamicEnable": true,
+  "dynamicDisable": false,
+  "tags": ["sa-ported", "player", "editor", "recommended"],
+  "enabledByDefault": true,
+  "required": ["api"]
+}

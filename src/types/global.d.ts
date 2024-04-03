@@ -1,4 +1,6 @@
 /// <reference path="../core/loader/ctx" />
+/// <reference path="../../node_modules/@turbowarp/types/types/scratch-vm.d.ts" />
+/// <reference path="./scratch-blocks.d.ts" />
 
 declare interface Window {
     __charlotte?: GlobalCtx;

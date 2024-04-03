@@ -4,10 +4,10 @@ import type { CharlotteRedux } from './redux';
 import { platformInfo } from '../../src/core/loader/match';
 
 export interface GlobalCtxWithAPI extends GlobalCtx {
-    api: CharlotteAPI,
+    api: CharlotteAPI;
     instances: {
-        vm?: unknown // @todo: add type declaration
-        blockly?: unknown // @todo: add type declaration
+        vm?: VM
+        blockly?: ScratchBlocks.RealBlockly
     }
 }
 
@@ -25,13 +25,13 @@ export interface CharlotteAPI {
      * Get Scratch's VM instance asynchronously.
      * @returns a promise that returns VM instance
      */
-    getVM (): Promise<unknown>;
+    getVM (): Promise<VM>;
     /**
      * Get Scratch's Blockly instance asynchronously.
      * This won't available if you're in project page.
      * @returns a promise that returns Blockly instance
      */
-    getBlockly (): Promise<unknown>;
+    getBlockly (): Promise<ScratchBlocks.RealBlockly>;
     /**
      * Get Charlotte's redux instance asynchronously.
      * This won't available if current page doesn't have redux or hide it (Eg: Codingclip)
@@ -82,7 +82,7 @@ export interface CharlotteAPI {
      * @param selector Selector string, syntax is same as `querySelector`.
      * @returns a promise that resolves requested element.
      */
-    waitForElementRender (selector: string): Promise<HTMLElement>;
+    waitForElement (selector: string, options?: WaitForElementOptions): Promise<Element>;
     /**
      * Append a element to a specific position in Scratch editor.
      * @param element The element you want to append to
@@ -139,6 +139,25 @@ export interface StoredContextMenuCallback extends BaseContextMenuOptions {
 export type ContextMenuCallback = (items: ContextMenuItem[], block: unknown, event: unknown) => ContextMenuItem[];
 
 export type StatePendingCondition = (state: unknown) => boolean;
+
+export interface WaitForElementOptions {
+  markAsSeen?: boolean;
+  condition?: () => boolean;
+  elementCondition?: (element: Element) => boolean;
+  reduxCondition?: (state: any) => boolean;
+  reduxEvents?: string[];
+}
+
+type ConditionFunction = () => boolean;
+type ElementConditionFunction = (element: Element) => boolean;
+
+interface PendingItem {
+  resolve: (value: Element) => void;
+  query: string;
+  seen?: WeakSet<Element>;
+  condition?: ConditionFunction;
+  elementCondition?: ElementConditionFunction;
+}
 
 export default async function ({addon, console}) {
     addon.api = {};
@@ -263,37 +282,116 @@ export default async function ({addon, console}) {
         };
     }
 
-    function pendingReduxState (condition: StatePendingCondition, scope?: string[]) {
-        if (!addon.redux.target) {
-            throw new Error('Redux not ready');
-        }
+    async function pendingReduxState (condition: StatePendingCondition, scope?: string[]) {
+        const redux = await getRedux();
 
-        if (condition(addon.redux.state)) return Promise.resolve();
+        if (condition(redux.state)) return Promise.resolve();
         return new Promise<void>(resolve => {
             const listener = ({detail}) => {
                 if (scope && !scope.includes(detail.action.type)) return;
                 if (!condition(detail.next)) return;
-                addon.redux.removeEventListener('statechanged', listener);
+                redux.target.removeEventListener('statechanged', listener);
                 setTimeout(resolve, 0);
             };
-            addon.redux.addEventListener('statechanged', listener);
+            redux.target.addEventListener('statechanged', listener);
         });
     }
 
-    function waitForElementRender (selector: string) {
-        return new Promise<HTMLElement>((resolve) => {
-            const observer = new MutationObserver((mutationsList, observer) => {
-                const elements = document.querySelectorAll(selector);
-                elements.forEach((element) => {
-                    if (element instanceof HTMLElement) {
-                        observer.disconnect();
-                        resolve(element);
-                    }
-                });
-            });
+    class SharedObserver {
+        private inactive: boolean = true;
+        private pending: Set<PendingItem> = new Set();
+        private observer: MutationObserver;
 
-            observer.observe(document.body, { subtree: true, childList: true });
+        constructor () {
+            this.observer = new MutationObserver((mutationsList, observer) => {
+                for (const item of Array.from(this.pending)) {
+                    if (item.condition && !item.condition()) continue;
+                    const matches = document.querySelectorAll(item.query);
+                    for (const match of Array.from(matches)) {
+                        if (item.seen?.has(match)) continue;
+                        if (item.elementCondition && !item.elementCondition(match)) continue;
+                        item.seen?.add(match);
+                        this.pending.delete(item);
+                        item.resolve(match);
+                        break;
+                    }
+                }
+                if (this.pending.size === 0) {
+                    this.inactive = true;
+                    this.observer.disconnect();
+                }
+            });
+        }
+
+        watch (opts: Omit<PendingItem, 'resolve'>): Promise<Element> {
+            if (this.inactive) {
+                this.inactive = false;
+                this.observer.observe(document.documentElement, {
+                    subtree: true,
+                    childList: true,
+                });
+            }
+            return new Promise((resolve) => this.pending.add({ resolve, ...opts }));
+        }
+    }
+
+    const sharedObserver = new SharedObserver();
+    const _waitForElementSet = new Set<Element>();
+    async function waitForElement (selector: string, options: WaitForElementOptions = {}) {
+        const { markAsSeen = false, condition, elementCondition, reduxCondition, reduxEvents } = options;
+        const redux = reduxEvents ? await getRedux() : null;
+
+        if (!condition || condition()) {
+            const firstQuery = document.querySelectorAll(selector);
+            for (const element of Array.from(firstQuery)) {
+                if (_waitForElementSet.has(element)) continue;
+                if (elementCondition && !elementCondition(element)) continue;
+                if (markAsSeen) _waitForElementSet.add(element);
+                return element;
+            }
+        }
+
+        let combinedCondition = () => {
+            if (condition && !condition()) return false;
+            if (reduxCondition) {
+                if (!reduxCondition(redux.state)) return false;
+            } 
+            return true;
+        };
+
+        let listener: ((event: CustomEvent) => void) | undefined;
+
+        if (reduxEvents) {
+            const oldCondition = combinedCondition;
+            let satisfied = false;
+            combinedCondition = () => {
+                if (oldCondition && !oldCondition()) return false;
+                return satisfied;
+            };
+
+            listener = ({ detail }) => {
+                if (reduxEvents.includes(detail.action.type)) {
+                    satisfied = true;
+                }
+            };
+
+            redux.target.addEventListener('statechanged', listener);
+        }
+
+        const promise = sharedObserver.watch({
+            query: selector,
+            seen: markAsSeen ? this._waitForElementSet : null,
+            condition: combinedCondition,
+            elementCondition: elementCondition || null,
         });
+
+        if (listener) {
+            const match = await promise;
+            addon.redux.target.removeEventListener('statechanged', listener);
+            return match;
+        }
+
+        return promise;
     }
 
     function appendToSharedSpace (element: HTMLElement, space: SharedSpace, order = 0) {
@@ -529,7 +627,7 @@ export default async function ({addon, console}) {
         getRedux,
         createBlockContextMenu,
         pendingReduxState,
-        waitForElementRender,
+        waitForElement,
         appendToSharedSpace,
         hashedScratchClass,
         getReactInternalPrefix,

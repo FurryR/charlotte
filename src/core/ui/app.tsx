@@ -1,7 +1,7 @@
 import type { AddonManifest, RuntimeAddon } from '../loader/loader';
 import { createSignal, Switch as SolidSwitch, Match, Show, For, onMount } from 'solid-js';
 import { render } from 'solid-js/web';
-import intl, { defineMessage } from '../util/l10n';
+import intl from '../util/l10n';
 import console from '../util/console';
 import classNames from 'classnames';
 import globalCss from './style.css';
