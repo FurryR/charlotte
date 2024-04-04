@@ -18,6 +18,7 @@
       "matches": ["acamp", "xmw", "sc"]
     }
   ],
+  "required": ["api"],
   "dynamicEnable": true,
   "dynamicDisable": true,
   "userstyles": [

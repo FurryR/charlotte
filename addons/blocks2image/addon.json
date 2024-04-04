@@ -10,6 +10,7 @@
   ],
   "dynamicEnable": true,
   "dynamicDisable": false,
+  "required": ["api"],
   "userscripts": [
     {
       "url": "userscript",
