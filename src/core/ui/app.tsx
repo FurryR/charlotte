@@ -1,5 +1,6 @@
-import type { AddonManifest, RuntimeAddon } from '../loader/loader';
-import { createSignal, Switch as SolidSwitch, Match, Show, For, onMount } from 'solid-js';
+import type { AddonManifest, RuntimeAddon, AddonSettingInt } from '../loader/loader';
+import type { JSX } from 'solid-js';
+import { createSignal, splitProps, Switch as SolidSwitch, Match, Show, For, onMount } from 'solid-js';
 import { render } from 'solid-js/web';
 import intl from '../util/l10n';
 import console from '../util/console';
@@ -61,6 +62,39 @@ function AddonCard (props: AddonProps) {
                                             }}
                                         />
                                     </Match>
+                                    <Match when={setting.type === 'integer'}>
+                                        <Input
+                                            defaultValue={globalCtx.settings[`@${props.addon.id}/${setting.id}`] ?? setting.default}
+                                            disabled={!props.status?.enabled}
+                                            type='number'
+                                            min={(setting as AddonSettingInt).min}
+                                            max={(setting as AddonSettingInt).max}
+                                            onChange={(value: number) => {
+                                                globalCtx.settings[`@${props.addon.id}/${setting.id}`] = value;
+                                            }}
+                                        />
+                                    </Match>
+                                    <Match when={setting.type === 'positive_integer'}>
+                                        <Input
+                                            defaultValue={globalCtx.settings[`@${props.addon.id}/${setting.id}`] ?? setting.default}
+                                            disabled={!props.status?.enabled}
+                                            type='number'
+                                            min={0}
+                                            onChange={(value: number) => {
+                                                globalCtx.settings[`@${props.addon.id}/${setting.id}`] = value;
+                                            }}
+                                        />
+                                    </Match>
+                                    <Match when={setting.type === 'string'}>
+                                        <Input
+                                            defaultValue={globalCtx.settings[`@${props.addon.id}/${setting.id}`] ?? setting.default}
+                                            disabled={!props.status?.enabled}
+                                            type='string'
+                                            onChange={(value: string) => {
+                                                globalCtx.settings[`@${props.addon.id}/${setting.id}`] = value;
+                                            }}
+                                        />
+                                    </Match>
                                 </SolidSwitch>
                             </div>
                         )}
@@ -98,6 +132,32 @@ function Switch (props: SwitchProps) {
             <div class={classNames(styles.slider, value() ? styles.true : styles.false, props.disabled ? styles.disabled : null)} />
             <input class={styles.dummyInput} inputMode='none' />
         </div>
+    );
+}
+
+interface InputProps extends JSX.InputHTMLAttributes<HTMLInputElement> {
+  className?: string;
+  small?: boolean;
+  defaultValue: string | number;
+  onChange (value: unknown): void;
+}
+
+function Input (props: InputProps) {
+    const [local, componentProps] = splitProps(props, ['defaultValue', 'small', 'onChange', 'className']);
+    const [value, setValue] = createSignal(local.defaultValue);
+
+    return (
+        <input
+            {...componentProps}
+            class={`${styles.inputForm} ${local.className ?? ''} ${
+                local.small ? styles.inputSmall : ''
+            }`}
+            value={value()}
+            onChange={(e) => {
+                setValue((e.target as HTMLInputElement).value);
+                local.onChange((e.target as HTMLInputElement).value);
+            }}
+        />
     );
 }
 

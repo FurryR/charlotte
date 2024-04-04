@@ -1,0 +1,27 @@
+{
+  "name": "Block count",
+  "description": "Shows the total number of blocks in a project in the editor menu bar. Previously part of \"sprite and script count\".",
+  "tags": ["sa-ported", "editor", "editorMenuBar"],
+  "credits": [
+    {
+      "name": "TheColaber",
+      "link": "https://scratch.mit.edu/users/TheColaber/"
+    }
+  ],
+  "dynamicEnable": true,
+  "dynamicDisable": false,
+  "userscripts": [
+    {
+      "url": "blockcount",
+      "matches": [
+          {
+            "platform": "sc",
+            "scopes": ["editor"]
+          }, {
+            "platform": "cc",
+            "scopes": ["editor"]
+          }, "acamp", "xmw"
+        ]
+    }
+  ]
+}

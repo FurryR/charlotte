@@ -1,13 +1,16 @@
 import type { ContextMenuItem } from '../api/api';
 
-export default async function ({addon, console}) {
+export default async function ({addon, console, intl}) {
     const Blockly = await addon.api.getBlockly();
     // Copy Option
     addon.api.createBlockContextMenu(
         (items: ContextMenuItem[], block: any) => {
             items.push({
                 enabled: typeof navigator.clipboard === 'object',
-                text: 'Copy Blocks To Clipboard',
+                text: intl.formatMessage({
+                    id: '@copy-blocks-to-clipboard/copy',
+                    defaultMessage: 'Copy Blocks To Clipboard'
+                }),
                 callback: () => {
                     const xml = document.createElement('xml');
                     xml.appendChild(Blockly.Xml.blockToDom(block, true));
@@ -25,7 +28,10 @@ export default async function ({addon, console}) {
             const ws = Blockly.getMainWorkspace();
             items.push({
                 enabled: typeof navigator.clipboard === 'object',
-                text: 'Paste Blocks From Clipboard',
+                text: intl.formatMessage({
+                    id: '@copy-blocks-to-clipboard/paste',
+                    defaultMessage: 'Paste Blocks From Clipboard'
+                }),
                 callback: () => {
                     navigator.clipboard.readText().then(data => {
                         Blockly.Events.disable();

@@ -1,0 +1,20 @@
+{
+  "name": "Save blocks as image",
+  "description": "Right click the code area to export blocks as SVG/PNG images.",
+  "tags": ["sa-ported", "editor", "codeEditor"],
+  "credits": [
+    {
+      "name": "summerscar",
+      "link": "https://github.com/summerscar"
+    }
+  ],
+  "dynamicEnable": true,
+  "dynamicDisable": false,
+  "userscripts": [
+    {
+      "url": "userscript",
+      "matches": ["all"]
+    }
+  ],
+  "enabledByDefault": false
+}

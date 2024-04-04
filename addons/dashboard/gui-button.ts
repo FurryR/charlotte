@@ -11,7 +11,7 @@ export default async function ({ addon, console, intl }: AddonCtxWithAPI) {
     });
 
     if (!addon.api.appendToSharedSpace(button, 'afterSoundTab')) {
-        console.warn('Failed to append yo shared space');
+        console.warn('Failed to append to shared space');
     }
     return () => {
         button.remove();
